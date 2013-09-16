@@ -1,5 +1,6 @@
 <?php
 
+
 // PHP 5 check
 if (version_compare(PHP_VERSION, '5.2.4', '<')) {
 	die('Your host needs to use PHP 5.2.4 or higher to run this version of Joomla!');
@@ -84,12 +85,14 @@ dd($table->getError());
 
 
 $tableCategory = JTable::getInstance('category');
+$tableContent = JTable::getInstance('content');
 
-
+// Deleting *our* ROOT category and previous contents and subcategories inside this category, if exists
 {
 	// Get a db connection.
 	$db = JFactory::getDbo();
-	 
+	
+		
 	// Create a new query object.
 	$query = $db->getQuery(true);
 	 
@@ -113,9 +116,31 @@ $tableCategory = JTable::getInstance('category');
 		$tableCategory->extension = 'com_content';
 		$tableCategory->delete();
 		//dd($tableCategory->getError());
+		
+		$query = <<<'EOT'
+DELETE FROM #__content
+WHERE id IN
+(
+	SELECT * FROM
+	(
+		SELECT co.`id`
+			FROM #__content co
+			LEFT OUTER JOIN rtfd0_categories ca ON ca.`id` = co.`catid`
+		WHERE
+			(ca.`id` IS NULL)
+	) AS temp
+);
+EOT;
+		$db->setQuery($query);
+		$db->query();
+		
+		
+		//dd($results);
+		//dd('');
 	}
 }
 
+// Creating *our* ROOT category
 {
 	$data = array();
 	$data['parent_id'] = $tableCategory->getRootId();
@@ -144,15 +169,13 @@ $tableCategory = JTable::getInstance('category');
 
 
 //dd($tableCategory->getError());
-//
 
-
-$tableContent = JTable::getInstance('content');
-
-
+// Creating sample content
+/*
 {
 	$data = array();
-	$data['title'] = 'text_'.microtime(true);
+	//$data['title'] = 'text_'.microtime(true);
+	$data['title'] = 'text_123';
 	$data['alias'] = $data['title'];
 	$data['introtext'] = 'hello';
 	$data['fulltext'] = 'world!';
@@ -175,16 +198,76 @@ $tableContent = JTable::getInstance('content');
 
 	$tableContent->store();
 	
-	dd($tableContent->id);
+	echo $tableContent->getError()."\n";
+	//dd($tableContent->id);
+}
+*/
+
+
+function create_section($dbh, $sectionid)
+{
+	$sth = $dbh->prepare('SELECT * from jos_sections WHERE id = '.$sectionid);
+	$sth->execute();
+	$row = $sth->fetch(PDO::FETCH_ASSOC);
+	//print_r($row);
+}
+
+function create_category($dbh, $sectionid, $catid)
+{
+	$sth = $dbh->prepare('SELECT * from jos_categories WHERE id = '.$catid);
+	$sth->execute();
+	$row = $sth->fetch(PDO::FETCH_ASSOC);
+	print_r($row);
+}
+
+function create_content($dbh, $row)
+{
+	print_r($row);
+}
+
+// Config for old Joomla 1.0 database
+$joom_1_host = 'localhost';
+$joom_1_dbname = 'ch5_temp';
+$joom_1_user = 'ch5admin';
+$joom_1_pass = 'echasl';
+
+try {
+    $dbh = new PDO(sprintf('mysql:host=%s;dbname=%s;charset=utf8', $joom_1_host, $joom_1_dbname), $joom_1_user, $joom_1_pass, array());
+
+	$sth = $dbh->prepare('SELECT * from jos_content LIMIT 0, 10');
+	$sth->execute();
+	
+	while ($row = $sth->fetch(PDO::FETCH_ASSOC))
+	{
+		//print_r($row);
+		
+		// sections and categories outside com_content or with id of zero aren't supported
+		// TODO: put sections and categories with id of zero in a special 'uncategorized' category
+		if ($row['sectionid'] and $row['catid'])
+		{
+			// Create sections
+			create_section($dbh, $row['sectionid']);
+			// Create categories
+			create_category($dbh, $row['sectionid'], $row['catid']);
+			// Create contents
+			create_content($dbh, $row);
+		}
+    }
+    $dbh = null;
+}
+catch (PDOException $e)
+{
+    print "Error!: " . $e->getMessage() . "<br/>";
+    die();
 }
 
 
 
-
-
-
-
-
-
-
-
+/*
+SELECT co.`id` id, co.`title` title, co.`title_alias` alias, ca.`id` cat_id, ca.`title` cat_title, ca.`name` cat_alias, se.`id` se_id, se.`title` se_title, se.`name` se_alias
+			FROM jos_content co
+			INNER JOIN jos_categories ca ON ca.`id` = co.`catid`
+			INNER JOIN jos_sections se ON se.`id` = co.`sectionid`
+		WHERE
+			(co.`id` = 320)
+*/
