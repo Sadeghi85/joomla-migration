@@ -87,6 +87,11 @@ dd($table->getError());
 $tableCategory = JTable::getInstance('category');
 $tableContent = JTable::getInstance('content');
 
+define('ARCHIVE_CATEGORY', 'Sadeghi85');
+$archive_category_id = '';
+$section_array = array();
+$category_array = array();
+
 // Deleting *our* ROOT category and previous contents and subcategories inside this category, if exists
 {
 	// Get a db connection.
@@ -100,7 +105,7 @@ $tableContent = JTable::getInstance('content');
 	// Order it by the ordering field.
 	//$query->select($db->quoteName(array('id')))->from($db->quoteName('#__categories'))->where($db->quoteName('extension') . ' = '. $db->quote('\'com_content\''));
 	
-	$query->select('id')->from('#__categories')->where("alias = 'sadeghi85'");
+	$query->select('id')->from('#__categories')->where("alias = '".ARCHIVE_CATEGORY."'");
 	 
 	// Reset the query using our newly populated query object.
 	$db->setQuery($query);
@@ -144,18 +149,18 @@ EOT;
 {
 	$data = array();
 	$data['parent_id'] = $tableCategory->getRootId();
-	$data['path'] = 'sadeghi85';
+	$data['path'] = ARCHIVE_CATEGORY;
 	$data['extension'] = 'com_content';
-	$data['title'] = 'sadeghi85';
-	$data['alias'] = 'sadeghi85';
-	$data['description'] = 'sadeghi85\'s migrator';
+	$data['title'] = ARCHIVE_CATEGORY;
+	$data['alias'] = ARCHIVE_CATEGORY;
+	$data['description'] = '';
 	$data['published'] = '1';
 	$data['access'] = '1';
 	$data['params'] = '{"category_layout":"","image":""}';
 	$data['metadata'] = '{"author":"","robots":""}';
 	$data['language'] = '*';
 
-	$tableCategory->setLocation($tableCategory->getRootId(), 'first-child'); // Parent ID, Position of an item
+	$tableCategory->setLocation($data['parent_id'], 'first-child'); // Parent ID, Position of an item
 
 	$tableCategory->bind($data);
 
@@ -164,6 +169,7 @@ EOT;
 
 	$tableCategory->store();
 	
+	$archive_category_id = $tableCategory->id;
 	//dd($tableCategory->id);
 }
 
@@ -206,23 +212,126 @@ EOT;
 
 function create_section($dbh, $sectionid)
 {
+	global $archive_category_id;
+	global $tableCategory;
+	global $section_array;
+	
+	
 	$sth = $dbh->prepare('SELECT * from jos_sections WHERE id = '.$sectionid);
 	$sth->execute();
 	$row = $sth->fetch(PDO::FETCH_ASSOC);
 	//print_r($row);
+	
+	$data = array();
+	$data['parent_id'] = $archive_category_id;
+	//$data['path'] = ARCHIVE_CATEGORY;
+	$data['extension'] = 'com_content';
+	$data['title'] = $row['title'];
+	$data['alias'] = $sectionid.'_'.$row['name'];
+	$data['description'] = '';
+	$data['published'] = '1';
+	$data['access'] = '1';
+	$data['params'] = '{"category_layout":"","image":""}';
+	$data['metadata'] = '{"author":"","robots":""}';
+	$data['language'] = '*';
+
+	$tableCategory->setLocation($data['parent_id'], 'last-child'); // Parent ID, Position of an item
+
+	$tableCategory->bind($data);
+
+	$tableCategory->id = 0;
+	$tableCategory->check();
+
+	$tableCategory->store();
+	
+	if ($tableCategory->id and is_int($tableCategory->id))
+	{
+		$section_array['section_'.$sectionid]['id'] = $tableCategory->id;
+		$section_array['section_'.$sectionid]['alias'] = $data['alias'];
+	}
+	//$archive_category_id = $tableCategory->id;
 }
 
 function create_category($dbh, $sectionid, $catid)
 {
+	global $tableCategory;
+	global $section_array;
+	global $category_array;
+	
+	//print_r($section_array);
+	
 	$sth = $dbh->prepare('SELECT * from jos_categories WHERE id = '.$catid);
 	$sth->execute();
 	$row = $sth->fetch(PDO::FETCH_ASSOC);
-	print_r($row);
+	//print_r($row);
+	
+	$data = array();
+	$data['parent_id'] = $section_array['section_'.$sectionid]['id'];
+	//$data['path'] = ARCHIVE_CATEGORY;
+	$data['extension'] = 'com_content';
+	$data['title'] = $row['title'];
+	$data['alias'] = $catid.'_'.$row['name'];
+	$data['description'] = '';
+	$data['published'] = '1';
+	$data['access'] = '1';
+	$data['params'] = '{"category_layout":"","image":""}';
+	$data['metadata'] = '{"author":"","robots":""}';
+	$data['language'] = '*';
+
+	$tableCategory->setLocation($data['parent_id'], 'last-child'); // Parent ID, Position of an item
+
+	$tableCategory->bind($data);
+
+	$tableCategory->id = 0;
+	$tableCategory->check();
+
+	$tableCategory->store();
+	
+	if ($tableCategory->id and is_int($tableCategory->id))
+	{
+		$category_array['category_'.$catid]['id'] = $tableCategory->id;
+		$category_array['category_'.$catid]['alias'] = $data['alias'];
+	}
+
 }
 
 function create_content($dbh, $row)
 {
-	print_r($row);
+	//print_r($row);
+	
+	global $tableCategory;
+	global $tableContent;
+	global $category_array;
+	
+	
+	$data = array();
+	//$data['title'] = 'text_'.microtime(true);
+	$data['title'] = $row['title'];
+	$data['alias'] = $row['id'].'_'.$row['title_alias'];
+	$data['introtext'] = $row['introtext'];
+	$data['fulltext'] = $row['fulltext'];
+	$data['state'] = $row['state'];
+	//$data['state'] = 1;
+	$data['catid'] = $category_array['category_'.$row['catid']]['id'];
+	$data['images'] = '{"image_intro":"","float_intro":"","image_intro_alt":"","image_intro_caption":"","image_fulltext":"","float_fulltext":"","image_fulltext_alt":"","image_fulltext_caption":""}';
+	$data['urls'] = '{"urla":false,"urlatext":"","targeta":"","urlb":false,"urlbtext":"","targetb":"","urlc":false,"urlctext":"","targetc":""}';
+	$data['attribs'] = '{"show_title":"","link_titles":"","show_intro":"","show_category":"","link_category":"","show_parent_category":"","link_parent_category":"","show_author":"","link_author":"","show_create_date":"","show_modify_date":"","show_publish_date":"","show_item_navigation":"","show_icons":"","show_print_icon":"","show_email_icon":"","show_vote":"","show_hits":"","show_noauth":"","urls_position":"","alternative_readmore":"","article_layout":"","show_publishing_options":"","show_article_options":"","show_urls_images_backend":"","show_urls_images_frontend":""}';
+	$data['metakey'] = '';
+	$data['metadesc'] = '';
+	$data['access'] = '1';
+	$data['metadata'] = '{"robots":"","author":"","rights":"","xreference":""}';
+	$data['language'] = '*';
+	$data['xreference'] = '';
+
+	$tableContent->bind($data);
+
+	$tableContent->id = 0;
+	$tableContent->check();
+
+	$tableContent->store();
+	
+	//echo $tableContent->getError()."\n";
+	//dd($tableContent->id);
 }
 
 // Config for old Joomla 1.0 database
@@ -234,15 +343,15 @@ $joom_1_pass = 'echasl';
 try {
     $dbh = new PDO(sprintf('mysql:host=%s;dbname=%s;charset=utf8', $joom_1_host, $joom_1_dbname), $joom_1_user, $joom_1_pass, array());
 
-	$sth = $dbh->prepare('SELECT * from jos_content LIMIT 0, 10');
+	$sth = $dbh->prepare('SELECT * from jos_content ORDER BY id LIMIT 0, 20');
 	$sth->execute();
 	
 	while ($row = $sth->fetch(PDO::FETCH_ASSOC))
 	{
 		//print_r($row);
 		
-		// sections and categories outside com_content or with id of zero aren't supported
-		// TODO: put sections and categories with id of zero in a special 'uncategorized' category
+		// sections and categories outside com_content or with id or parentid of zero aren't supported
+		// TODO: put categories with parentid of zero in a special 'uncategorized' category
 		if ($row['sectionid'] and $row['catid'])
 		{
 			// Create sections
@@ -251,6 +360,8 @@ try {
 			create_category($dbh, $row['sectionid'], $row['catid']);
 			// Create contents
 			create_content($dbh, $row);
+			
+			// Rename the ARCHIVE to cause 'path' to autogenerate
 		}
     }
     $dbh = null;
