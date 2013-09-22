@@ -226,13 +226,23 @@ function create_section($dbh, $sectionid)
 	$data['parent_id'] = $archive_category_id;
 	//$data['path'] = ARCHIVE_CATEGORY;
 	$data['extension'] = 'com_content';
-	$data['title'] = $row['title'];
+	
+	if ($row['title'])
+	{
+		$data['title'] = $row['title'];
+	}
+	else
+	{
+		$data['title'] = $sectionid.'_'.$row['name'];
+	}
+	
 	$data['alias'] = $sectionid.'_'.$row['name'];
-	$data['description'] = '';
-	$data['published'] = '1';
+	$data['description'] = $row['description'];
+	$data['published'] = $row['published'];
 	$data['access'] = '1';
-	$data['params'] = '{"category_layout":"","image":""}';
-	$data['metadata'] = '{"author":"","robots":""}';
+	//$data['params'] = '{"category_layout":"","image":""}';
+	//$data['metadata'] = '{"author":"","robots":""}';
+	//$data['created_user_id'] = '42'; // Custom Value
 	$data['language'] = '*';
 
 	$tableCategory->setLocation($data['parent_id'], 'last-child'); // Parent ID, Position of an item
@@ -269,13 +279,23 @@ function create_category($dbh, $sectionid, $catid)
 	$data['parent_id'] = $section_array['section_'.$sectionid]['id'];
 	//$data['path'] = ARCHIVE_CATEGORY;
 	$data['extension'] = 'com_content';
-	$data['title'] = $row['title'];
+	
+	if ($row['title'])
+	{
+		$data['title'] = $row['title'];
+	}
+	else
+	{
+		$data['title'] = $catid.'_'.$row['name'];
+	}
+	
 	$data['alias'] = $catid.'_'.$row['name'];
-	$data['description'] = '';
-	$data['published'] = '1';
+	$data['description'] = $row['description'];
+	$data['published'] = $row['published'];
 	$data['access'] = '1';
-	$data['params'] = '{"category_layout":"","image":""}';
-	$data['metadata'] = '{"author":"","robots":""}';
+	//$data['params'] = '{"category_layout":"","image":""}';
+	//$data['metadata'] = '{"author":"","robots":""}';
+	//$data['created_user_id'] = '42'; // Custom Value
 	$data['language'] = '*';
 
 	$tableCategory->setLocation($data['parent_id'], 'last-child'); // Parent ID, Position of an item
@@ -306,22 +326,36 @@ function create_content($dbh, $row)
 	
 	$data = array();
 	//$data['title'] = 'text_'.microtime(true);
-	$data['title'] = $row['title'];
+	
+	if ($row['title'])
+	{
+		$data['title'] = $row['title'];
+	}
+	else
+	{
+		$data['title'] = $row['id'].'_'.$row['title_alias'];
+	}
+	
 	$data['alias'] = $row['id'].'_'.$row['title_alias'];
 	$data['introtext'] = $row['introtext'];
 	$data['fulltext'] = $row['fulltext'];
 	$data['state'] = $row['state'];
 	//$data['state'] = 1;
 	$data['catid'] = $category_array['category_'.$row['catid']]['id'];
-	$data['images'] = '{"image_intro":"","float_intro":"","image_intro_alt":"","image_intro_caption":"","image_fulltext":"","float_fulltext":"","image_fulltext_alt":"","image_fulltext_caption":""}';
-	$data['urls'] = '{"urla":false,"urlatext":"","targeta":"","urlb":false,"urlbtext":"","targetb":"","urlc":false,"urlctext":"","targetc":""}';
-	$data['attribs'] = '{"show_title":"","link_titles":"","show_intro":"","show_category":"","link_category":"","show_parent_category":"","link_parent_category":"","show_author":"","link_author":"","show_create_date":"","show_modify_date":"","show_publish_date":"","show_item_navigation":"","show_icons":"","show_print_icon":"","show_email_icon":"","show_vote":"","show_hits":"","show_noauth":"","urls_position":"","alternative_readmore":"","article_layout":"","show_publishing_options":"","show_article_options":"","show_urls_images_backend":"","show_urls_images_frontend":""}';
-	$data['metakey'] = '';
-	$data['metadesc'] = '';
+	$data['created'] = $row['created'];
+	//$data['created_by'] = '42';
+	$data['modified'] = $row['modified'];
+	$data['publish_up'] = $row['publish_up'];
+	$data['publish_down'] = $row['publish_down'];
+	//$data['images'] = '{"image_intro":"","float_intro":"","image_intro_alt":"","image_intro_caption":"","image_fulltext":"","float_fulltext":"","image_fulltext_alt":"","image_fulltext_caption":""}';
+	//$data['urls'] = '{"urla":false,"urlatext":"","targeta":"","urlb":false,"urlbtext":"","targetb":"","urlc":false,"urlctext":"","targetc":""}';
+	//$data['attribs'] = '{"show_title":"","link_titles":"","show_intro":"","show_category":"","link_category":"","show_parent_category":"","link_parent_category":"","show_author":"","link_author":"","show_create_date":"","show_modify_date":"","show_publish_date":"","show_item_navigation":"","show_icons":"","show_print_icon":"","show_email_icon":"","show_vote":"","show_hits":"","show_noauth":"","urls_position":"","alternative_readmore":"","article_layout":"","show_publishing_options":"","show_article_options":"","show_urls_images_backend":"","show_urls_images_frontend":""}';
+	//$data['version'] = $row['version'];
 	$data['access'] = '1';
-	$data['metadata'] = '{"robots":"","author":"","rights":"","xreference":""}';
+	$data['hits'] = $row['hits'];
+	//$data['metadata'] = '{"robots":"","author":"","rights":"","xreference":""}';
 	$data['language'] = '*';
-	$data['xreference'] = '';
+	//$data['xreference'] = '';
 
 	$tableContent->bind($data);
 
@@ -343,7 +377,7 @@ $joom_1_pass = 'echasl';
 try {
     $dbh = new PDO(sprintf('mysql:host=%s;dbname=%s;charset=utf8', $joom_1_host, $joom_1_dbname), $joom_1_user, $joom_1_pass, array());
 
-	$sth = $dbh->prepare('SELECT * from jos_content ORDER BY id LIMIT 0, 20');
+	$sth = $dbh->prepare('SELECT * from jos_content ORDER BY id');// LIMIT 0, 20');
 	$sth->execute();
 	
 	while ($row = $sth->fetch(PDO::FETCH_ASSOC))
