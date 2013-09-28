@@ -20,6 +20,7 @@ if ( ! function_exists('dd'))
 	}
 }
 
+
 /**
  * Constant that is checked in included files to prevent direct access.
  */
@@ -87,8 +88,10 @@ dd($table->getError());
 $tableCategory = JTable::getInstance('category');
 $tableContent = JTable::getInstance('content');
 
-define('ARCHIVE_CATEGORY', 'Sadeghi85');
+define('ARCHIVE_CATEGORY', 'سرشاخه‌ی جوملای قدیمی');
+define('UNCATHEGORIZED_CATEGORY', 'بدون مجموعه');
 $archive_category_id = '';
+$uncathegorized_category_id = '';
 $section_array = array();
 $category_array = array();
 
@@ -130,7 +133,7 @@ WHERE id IN
 	(
 		SELECT co.`id`
 			FROM #__content co
-			LEFT OUTER JOIN rtfd0_categories ca ON ca.`id` = co.`catid`
+			LEFT OUTER JOIN #__categories ca ON ca.`id` = co.`catid`
 		WHERE
 			(ca.`id` IS NULL)
 	) AS temp
@@ -156,8 +159,8 @@ EOT;
 	$data['description'] = '';
 	$data['published'] = '1';
 	$data['access'] = '1';
-	$data['params'] = '{"category_layout":"","image":""}';
-	$data['metadata'] = '{"author":"","robots":""}';
+	//$data['params'] = '{"category_layout":"","image":""}';
+	//$data['metadata'] = '{"author":"","robots":""}';
 	$data['language'] = '*';
 
 	$tableCategory->setLocation($data['parent_id'], 'first-child'); // Parent ID, Position of an item
@@ -171,6 +174,34 @@ EOT;
 	
 	$archive_category_id = $tableCategory->id;
 	//dd($tableCategory->id);
+}
+
+{
+	$data = array();
+	$data['parent_id'] = $archive_category_id;
+	//$data['path'] = ARCHIVE_CATEGORY;
+	$data['extension'] = 'com_content';
+	
+	$data['title'] = UNCATHEGORIZED_CATEGORY;
+	$data['alias'] = UNCATHEGORIZED_CATEGORY;
+	$data['description'] = '';
+	$data['published'] = '1';
+	$data['access'] = '1';
+	//$data['params'] = '{"category_layout":"","image":""}';
+	//$data['metadata'] = '{"author":"","robots":""}';
+	//$data['created_user_id'] = '42'; // Custom Value
+	$data['language'] = '*';
+
+	$tableCategory->setLocation($data['parent_id'], 'first-child'); // Parent ID, Position of an item
+
+	$tableCategory->bind($data);
+
+	$tableCategory->id = 0;
+	$tableCategory->check();
+
+	$tableCategory->store();
+	
+	$uncathegorized_category_id = $tableCategory->id;
 }
 
 
@@ -368,6 +399,58 @@ function create_content($dbh, $row)
 	//dd($tableContent->id);
 }
 
+function create_uncathegorized_content($dbh, $row)
+{
+	//print_r($row);
+	
+	global $tableCategory;
+	global $tableContent;
+	global $uncathegorized_category_id;
+	
+	$data = array();
+	
+	if ($row['title'])
+	{
+		$data['title'] = $row['title'];
+	}
+	else
+	{
+		$data['title'] = $row['id'].'_'.$row['title_alias'];
+	}
+	
+	$data['alias'] = $row['id'].'_'.$row['title_alias'];
+	$data['introtext'] = $row['introtext'];
+	$data['fulltext'] = $row['fulltext'];
+	$data['state'] = $row['state'];
+	//$data['state'] = 1;
+	$data['catid'] = $uncathegorized_category_id;
+	$data['created'] = $row['created'];
+	//$data['created_by'] = '42';
+	$data['modified'] = $row['modified'];
+	$data['publish_up'] = $row['publish_up'];
+	$data['publish_down'] = $row['publish_down'];
+	//$data['images'] = '{"image_intro":"","float_intro":"","image_intro_alt":"","image_intro_caption":"","image_fulltext":"","float_fulltext":"","image_fulltext_alt":"","image_fulltext_caption":""}';
+	//$data['urls'] = '{"urla":false,"urlatext":"","targeta":"","urlb":false,"urlbtext":"","targetb":"","urlc":false,"urlctext":"","targetc":""}';
+	//$data['attribs'] = '{"show_title":"","link_titles":"","show_intro":"","show_category":"","link_category":"","show_parent_category":"","link_parent_category":"","show_author":"","link_author":"","show_create_date":"","show_modify_date":"","show_publish_date":"","show_item_navigation":"","show_icons":"","show_print_icon":"","show_email_icon":"","show_vote":"","show_hits":"","show_noauth":"","urls_position":"","alternative_readmore":"","article_layout":"","show_publishing_options":"","show_article_options":"","show_urls_images_backend":"","show_urls_images_frontend":""}';
+	//$data['version'] = $row['version'];
+	$data['access'] = '1';
+	$data['hits'] = $row['hits'];
+	//$data['metadata'] = '{"robots":"","author":"","rights":"","xreference":""}';
+	$data['language'] = '*';
+	//$data['xreference'] = '';
+
+	$tableContent->bind($data);
+
+	$tableContent->id = 0;
+	$tableContent->check();
+
+	$tableContent->store();
+	
+	//echo $tableContent->getError()."\n";
+	//dd($tableContent->id);
+}
+
+
 // Config for old Joomla 1.0 database
 $joom_1_host = 'localhost';
 $joom_1_dbname = 'ch5_temp';
@@ -397,6 +480,10 @@ try {
 			
 			// Rename the ARCHIVE to cause 'path' to autogenerate
 		}
+		else
+		{
+			create_uncathegorized_content($dbh, $row);
+		}
     }
     $dbh = null;
 }
@@ -407,6 +494,9 @@ catch (PDOException $e)
 }
 
 
+$tableCategory->id = $archive_category_id;
+$tableCategory->extension = 'com_content';
+$tableCategory->rebuild();
 
 /*
 SELECT co.`id` id, co.`title` title, co.`title_alias` alias, ca.`id` cat_id, ca.`title` cat_title, ca.`name` cat_alias, se.`id` se_id, se.`title` se_title, se.`name` se_alias
