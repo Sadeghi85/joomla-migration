@@ -108,7 +108,7 @@ $category_array = array();
 	// Order it by the ordering field.
 	//$query->select($db->quoteName(array('id')))->from($db->quoteName('#__categories'))->where($db->quoteName('extension') . ' = '. $db->quote('\'com_content\''));
 	
-	$query->select('id')->from('#__categories')->where("alias = '".ARCHIVE_CATEGORY."'");
+	$query->select('id')->from('#__categories')->where("alias = '".str_replace(' ', '-', ARCHIVE_CATEGORY)."'");
 	 
 	// Reset the query using our newly populated query object.
 	$db->setQuery($query);
@@ -155,7 +155,7 @@ EOT;
 	$data['path'] = ARCHIVE_CATEGORY;
 	$data['extension'] = 'com_content';
 	$data['title'] = ARCHIVE_CATEGORY;
-	$data['alias'] = ARCHIVE_CATEGORY;
+	$data['alias'] = str_replace(' ', '-', ARCHIVE_CATEGORY);
 	$data['description'] = '';
 	$data['published'] = '1';
 	$data['access'] = '1';
@@ -183,7 +183,7 @@ EOT;
 	$data['extension'] = 'com_content';
 	
 	$data['title'] = UNCATHEGORIZED_CATEGORY;
-	$data['alias'] = UNCATHEGORIZED_CATEGORY;
+	$data['alias'] = str_replace(' ', '-', UNCATHEGORIZED_CATEGORY);
 	$data['description'] = '';
 	$data['published'] = '1';
 	$data['access'] = '1';
@@ -258,16 +258,26 @@ function create_section($dbh, $sectionid)
 	//$data['path'] = ARCHIVE_CATEGORY;
 	$data['extension'] = 'com_content';
 	
+	if ($row['name'])
+	{
+		$row['alias'] = $row['name'];
+	}
+	elseif ( ! $row['alias'])
+	{
+		$row['alias'] = '';
+	}
+	
+	
 	if ($row['title'])
 	{
 		$data['title'] = $row['title'];
 	}
 	else
 	{
-		$data['title'] = $sectionid.'_'.$row['name'];
+		$data['title'] = $sectionid.'_'.$row['alias'];
 	}
 	
-	$data['alias'] = $sectionid.'_'.$row['name'];
+	$data['alias'] = $sectionid.'_'.str_replace(' ', '-', $row['alias']);
 	$data['description'] = $row['description'];
 	$data['published'] = $row['published'];
 	$data['access'] = '1';
@@ -311,16 +321,25 @@ function create_category($dbh, $sectionid, $catid)
 	//$data['path'] = ARCHIVE_CATEGORY;
 	$data['extension'] = 'com_content';
 	
+	if ($row['name'])
+	{
+		$row['alias'] = $row['name'];
+	}
+	elseif ( ! $row['alias'])
+	{
+		$row['alias'] = '';
+	}
+	
 	if ($row['title'])
 	{
 		$data['title'] = $row['title'];
 	}
 	else
 	{
-		$data['title'] = $catid.'_'.$row['name'];
+		$data['title'] = $catid.'_'.$row['alias'];
 	}
 	
-	$data['alias'] = $catid.'_'.$row['name'];
+	$data['alias'] = $catid.'_'.str_replace(' ', '-', $row['alias']);
 	$data['description'] = $row['description'];
 	$data['published'] = $row['published'];
 	$data['access'] = '1';
@@ -358,16 +377,25 @@ function create_content($dbh, $row)
 	$data = array();
 	//$data['title'] = 'text_'.microtime(true);
 	
+	if ($row['title_alias'])
+	{
+		$row['alias'] = $row['title_alias'];
+	}
+	elseif ( ! $row['alias'])
+	{
+		$row['alias'] = '';
+	}
+	
 	if ($row['title'])
 	{
 		$data['title'] = $row['title'];
 	}
 	else
 	{
-		$data['title'] = $row['id'].'_'.$row['title_alias'];
+		$data['title'] = $row['id'].'_'.$row['alias'];
 	}
 	
-	$data['alias'] = $row['id'].'_'.$row['title_alias'];
+	$data['alias'] = $row['id'].'_'.str_replace(' ', '-', $row['alias']);
 	$data['introtext'] = $row['introtext'];
 	$data['fulltext'] = $row['fulltext'];
 	$data['state'] = $row['state'];
@@ -409,16 +437,25 @@ function create_uncathegorized_content($dbh, $row)
 	
 	$data = array();
 	
+	if ($row['title_alias'])
+	{
+		$row['alias'] = $row['title_alias'];
+	}
+	elseif ( ! $row['alias'])
+	{
+		$row['alias'] = '';
+	}
+	
 	if ($row['title'])
 	{
 		$data['title'] = $row['title'];
 	}
 	else
 	{
-		$data['title'] = $row['id'].'_'.$row['title_alias'];
+		$data['title'] = $row['id'].'_'.$row['alias'];
 	}
 	
-	$data['alias'] = $row['id'].'_'.$row['title_alias'];
+	$data['alias'] = $row['id'].'_'.str_replace(' ', '-', $row['alias']);
 	$data['introtext'] = $row['introtext'];
 	$data['fulltext'] = $row['fulltext'];
 	$data['state'] = $row['state'];
@@ -453,9 +490,9 @@ function create_uncathegorized_content($dbh, $row)
 
 // Config for old Joomla 1.0 database
 $joom_1_host = 'localhost';
-$joom_1_dbname = 'ch5_temp';
-$joom_1_user = 'ch5admin';
-$joom_1_pass = 'echasl';
+$joom_1_dbname = 'tv7';
+$joom_1_user = 'amoozesh';
+$joom_1_pass = 'admin';
 
 try {
     $dbh = new PDO(sprintf('mysql:host=%s;dbname=%s;charset=utf8', $joom_1_host, $joom_1_dbname), $joom_1_user, $joom_1_pass, array());
